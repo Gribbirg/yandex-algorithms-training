@@ -1,6 +1,7 @@
+import java.io.File
+
 fun main() {
-    val set = HashSet<String>()
-    set.add("Baa")
-    set.add("aaa")
-    println(set.sorted())
+    File("input.txt").readLines().forEach {
+        println(it.split(' ').size)
+    }
 }
