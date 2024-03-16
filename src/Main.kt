@@ -1,4 +1,6 @@
 fun main() {
-    val list = charArrayOf('1', '2', '3', '4', '5')
-    println(list.slice(1..2))
+    val set = HashSet<String>()
+    set.add("Baa")
+    set.add("aaa")
+    println(set.sorted())
 }
