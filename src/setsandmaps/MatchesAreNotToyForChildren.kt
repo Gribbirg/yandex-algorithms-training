@@ -12,8 +12,8 @@ data class Match(
 
     fun movedBy(x: Int, y: Int) =
         Match(
-            Point(start.x - x, start.y - y),
-            Point(end.x - x, end.y - y)
+            Point(start.x + x, start.y + y),
+            Point(end.x + x, end.y + y)
         )
 
     data class Point(
@@ -23,6 +23,24 @@ data class Match(
         override fun compareTo(other: Point): Int =
             if (x != other.x) x - other.x
             else y - other.y
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Point
+
+            if (x != other.x) return false
+            if (y != other.y) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = x
+            result = 31 * result + y
+            return result
+        }
 
     }
 
@@ -43,8 +61,8 @@ data class Match(
 fun main() {
     val input = File("input.txt").bufferedReader()
     val n = input.readLine().toInt()
-    val matches = HashSet<Match>(n)
-    val matchesTarget = HashSet<Match>(n)
+    val matches = ArrayList<Match>(n)
+    val matchesTarget = ArrayList<Match>(n)
     repeat(n) {
         matches.add(Match.fromLine(input.readLine()))
     }
@@ -52,19 +70,28 @@ fun main() {
         matchesTarget.add(Match.fromLine(input.readLine()))
     }
 
-    var res = 0
+    matches.sort()
+    matchesTarget.sort()
 
-    for (x in -100..100) {
-        for (y in -100..100) {
-            res = max(
-                res,
-                matches
-                    .map { it.movedBy(x, y) }
-                    .intersect(matchesTarget)
-                    .size
-            )
+    var res = 0
+    val blackList = HashSet<Match.Point>()
+
+    matches.forEach { match ->
+        matchesTarget.filter { it.dx == match.dx && it.dy == match.dy }.forEach { target ->
+            val x = target.start.x - match.start.x
+            val y = target.start.y - match.start.y
+            val point = Match.Point(x, y)
+            if (!blackList.contains(point)) {
+                var attemptRes = 0
+                for (i in matches.indices) {
+                    if (matches[i].movedBy(x, y).compareTo(matchesTarget[i]) == 0)
+                        attemptRes++
+                }
+                res = max(res, attemptRes)
+                blackList.add(point)
+            }
         }
     }
 
-    println(n - res)
+    println(res)
 }
