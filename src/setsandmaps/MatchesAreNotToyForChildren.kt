@@ -1,7 +1,6 @@
 package setsandmaps
 
 import java.io.File
-import kotlin.math.max
 
 data class Match(
     val start: Point,
@@ -9,12 +8,6 @@ data class Match(
 ) : Comparable<Match> {
     val dx = start.x - end.x
     val dy = start.y - end.y
-
-    fun movedBy(x: Int, y: Int) =
-        Match(
-            Point(start.x + x, start.y + y),
-            Point(end.x + x, end.y + y)
-        )
 
     data class Point(
         val x: Int,
@@ -56,42 +49,52 @@ data class Match(
     override fun compareTo(other: Match): Int =
         if (start != other.start) start.compareTo(other.start)
         else end.compareTo(other.end)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Match
+
+        if (start != other.start) return false
+        if (end != other.end) return false
+        if (dx != other.dx) return false
+        if (dy != other.dy) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = start.hashCode()
+        result = 31 * result + end.hashCode()
+        result = 31 * result + dx
+        result = 31 * result + dy
+        return result
+    }
 }
 
 fun main() {
     val input = File("input.txt").bufferedReader()
     val n = input.readLine().toInt()
-    val matches = ArrayList<Match>(n)
-    val matchesTarget = ArrayList<Match>(n)
-    repeat(n) {
-        matches.add(Match.fromLine(input.readLine()))
+    val matches = List(n) {
+        Match.fromLine(input.readLine())
     }
-    repeat(n) {
-        matchesTarget.add(Match.fromLine(input.readLine()))
+    val matchesTarget = List(n) {
+        Match.fromLine(input.readLine())
     }
 
-    matches.sort()
-    matchesTarget.sort()
-
-    var res = 0
-    val blackList = HashSet<Match.Point>()
+    val map = HashMap<Match.Point, Int>()
 
     matches.forEach { match ->
-        matchesTarget.filter { it.dx == match.dx && it.dy == match.dy }.forEach { target ->
-            val x = target.start.x - match.start.x
-            val y = target.start.y - match.start.y
-            val point = Match.Point(x, y)
-            if (!blackList.contains(point)) {
-                var attemptRes = 0
-                for (i in matches.indices) {
-                    if (matches[i].movedBy(x, y).compareTo(matchesTarget[i]) == 0)
-                        attemptRes++
-                }
-                res = max(res, attemptRes)
-                blackList.add(point)
+        matchesTarget.forEach { target ->
+            if (target.dx == match.dx && target.dy == match.dy) {
+                val x = target.start.x - match.start.x
+                val y = target.start.y - match.start.y
+                val point = Match.Point(x, y)
+                map[point] = map.getOrDefault(point, 0) + 1
             }
         }
     }
 
-    println(res)
+    println(n - if (map.isNotEmpty()) map.values.max() else 0)
 }
