@@ -1,7 +1,6 @@
 import java.io.File
 
 fun main() {
-    File("input.txt").readLines().forEach {
-        println(it.split(' ').size)
-    }
+    val list = listOf(0, 0, 1, 2, 3, 3, 4)
+    println(list.minBy { list.count { el -> el == it } })
 }
