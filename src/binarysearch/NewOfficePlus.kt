@@ -14,7 +14,7 @@ fun main() {
     val maxSize = min(width, height) / 3 + 3
 
     var currentSize = 1
-    var lineIndex = currentSize
+    var lineIndex = 1
     while (lineIndex <= height - currentSize * 2 + 1) {
         var charIndex = currentSize
         while (charIndex <= width - currentSize * 2 + 1) {
