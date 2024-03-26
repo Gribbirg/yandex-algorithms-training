@@ -4,38 +4,17 @@ import java.io.File
 
 data class ElectionParty(
     val id: Int,
-    var voters: Int,
-    val price: Int
-) : Comparable<ElectionParty> {
-    override fun compareTo(other: ElectionParty): Int = -when {
-        price == -1 && other.price == -1 -> voters - other.voters
-        price == -1 -> -1
-        other.price == -1 -> 1
-        else -> voters - price - (other.voters - other.price)
-    }
-
-    override fun toString(): String {
-        return "ElectionParty(voters=$voters, price=$price)"
-    }
-}
-
-
-data class ElectionsResult(
+    var voters: Long,
     val price: Int,
-    val party: ElectionParty,
-    var voters: List<Int>
-) {
-    fun restoreVoters(partiesByVoters: List<ElectionParty>) {
-        partiesByVoters.forEachIndexed { index, value -> value.voters = voters[index] }
-        voters = partiesByVoters
-            .sortedBy { it.id }
-            .map { it.voters }
-            .toMutableList()
-            .also { it[party.id] += price - party.price }
+    var winPrice: Long = Long.MAX_VALUE
+) : Comparable<ElectionParty> {
+    override fun compareTo(other: ElectionParty): Int = when {
+        voters != other.voters -> (voters - other.voters).toInt()
+        else -> id - other.id
     }
 
     override fun toString(): String {
-        return "$price\n${party.id + 1}\n${voters.joinToString(" ")}"
+        return "ElectionParty(id=$id, voters=$voters, price=$price, winPrice=$winPrice)"
     }
 }
 
@@ -46,77 +25,83 @@ fun main() {
 
     val n = input.readLine().toInt()
     val parties = List(n) { id ->
-        input.readLine().split(' ').map { it.toInt() }.let {
-            ElectionParty(id, it[0], it[1])
+        input.readLine().split(' ').map { it.toLong() }.let {
+            ElectionParty(id, it[0], it[1].toInt())
         }
     }.sorted()
 
     if (parties.size == 1) {
-        println(ElectionsResult(parties.first().price, parties.first(), listOf(parties.first().voters)))
+        output.writeText("${parties.first().price}\n${parties.first().id + 1}\n${parties.first().voters}")
         return
     }
 
-    val partiesByVoters = parties.sortedByDescending { it.voters }
-    val voters = partiesByVoters.map { it.voters }
+    val voters = parties.map { it.voters }.toMutableList()
+    (voters.lastIndex - 1 downTo 0).forEach { i ->
+        voters[i] += voters[i + 1]
+    }
 
+    parties.forEach { party ->
+
+        if (party.price == -1) {
+            return@forEach
+        }
+
+        var l = party.voters
+        var r = parties.last().voters
+        if (parties.last().voters == parties[parties.lastIndex - 1].voters)
+            r++
+
+        while (l < r) {
+            val medium = (l + r) / 2
+            if (check(parties, voters, party, medium)) {
+                r = medium
+            } else {
+                l = medium + 1
+            }
+        }
+        party.winPrice = l + party.price - party.voters
+    }
+
+    val minParty = parties.minBy { it.winPrice }
+    val resVoters = simulate(parties, minParty)
+    output.writeText("${minParty.winPrice}\n${minParty.id + 1}\n${resVoters.joinToString(" ")}")
+}
+
+fun check(parties: List<ElectionParty>, voters: List<Long>, party: ElectionParty, money: Long): Boolean {
     var l = 0
-    var r = parties.maxOf { it.voters } + parties.maxOf { it.price }
-    var res: ElectionsResult? = null
+    var r = parties.size
     while (l < r) {
         val medium = (l + r) / 2
-        res = check(parties, voters, medium)
-        if (res != null) {
+        if (parties[medium].voters >= money) {
             r = medium
         } else {
             l = medium + 1
         }
     }
-    if (res != null) {
-        res.restoreVoters(partiesByVoters)
-        println(res.toString())
-    } else {
-        println(ElectionsResult(parties.first().price, parties.first(), parties.map { it.voters }))
-    }
+    return voters[l] - (parties.size - l) * (money - 1) + party.voters <= money
 }
 
-fun check(parties: List<ElectionParty>, voters: List<Int>, money: Int): ElectionsResult? {
-    for (party in parties) {
-        simulate(party, voters, money)?.let { return it }
-    }
-    return null
-}
+fun simulate(parties: List<ElectionParty>, party: ElectionParty): List<Long> {
 
-fun simulate(party: ElectionParty, voters: List<Int>, money: Int): ElectionsResult? {
-    if (party.price == -1)
-        return null
+    var cash = party.winPrice - party.price
+    var voter = party.voters
+    party.voters += cash.toInt()
 
-    var cash = money - party.price
-    if (cash < 0)
-        return null
+    while (voter <= if (party.id != parties.last().id) parties.last().voters else parties[parties.lastIndex - 1].voters) {
 
-    val currentVoters = voters.toMutableList()
+        val max = (if (party.id != parties.last().id) parties.last() else parties[parties.lastIndex - 1]).voters
+        var i = parties.lastIndex
 
-    val voter = party.voters + cash
-
-    while (voter <= if (party.price != currentVoters.first()) currentVoters.first() else currentVoters[1]) {
-
-        val max = if (party.price != currentVoters.first()) currentVoters.first() else currentVoters[1]
-        var i = 0
-        var ignored = false
-        while (i < currentVoters.size && currentVoters[i] == max) {
-            if (currentVoters[i] != party.voters || ignored) {
-                currentVoters[i]--
+        while (i >= 0 && cash > 0 && (parties[i].id == party.id || parties[i].voters == max)) {
+            if (parties[i].id != party.id) {
+                parties[i].voters--
                 cash--
-            } else {
-                ignored = true
+                voter++
             }
-            i++
+            i--
         }
-
-        if (cash < 0) break
+        if (cash == 0L) break
     }
-
-    if (cash < 0) return null
-    else if (cash > 0) currentVoters[0]--
-    return ElectionsResult(money, party, currentVoters)
+    if (cash > 0) (if (party.id != parties.last().id) parties.last() else parties[parties.lastIndex - 1]).voters--
+    return parties.sortedBy { it.id }.map { it.voters }
 }
