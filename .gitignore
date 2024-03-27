@@ -31,4 +31,5 @@ bin/
 .idea/
 *input.txt
 *output.txt
+*log.txt
 src/Test.kt
