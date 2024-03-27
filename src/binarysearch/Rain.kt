@@ -55,7 +55,9 @@ class RainField(
     class Trapezoid(
         private val pointLeftUp: Point,
         private val pointRightUp: Point,
-        points: List<Point>
+        points: List<Point>,
+        leftDrain: Point = pointLeftUp,
+        rightDrain: Point = pointRightUp
     ) : Figure {
         private val pointLeftDown: Point
         private val pointRightDown: Point
@@ -75,7 +77,7 @@ class RainField(
                         if (it.size == 1)
                             Triangle(pointLeftDown, pointRightDown, it.first())
                         else
-                            Trapezoid(pointLeftDown, pointRightDown, it)
+                            Trapezoid(pointLeftDown, pointRightDown, it, leftDrain, rightDrain)
                     })
                     rainRatio = listOf(1.0)
                 }
@@ -87,7 +89,7 @@ class RainField(
                         if (it.size == 1)
                             Triangle(pointLeftDown, pointRightDown, it.first())
                         else
-                            Trapezoid(pointLeftDown, pointRightDown, it)
+                            Trapezoid(pointLeftDown, pointRightDown, it, leftDrain, rightDrain)
                     })
                     rainRatio = listOf(1.0)
                 }
@@ -100,19 +102,19 @@ class RainField(
                             if (it.size == 1)
                                 Triangle(pointLeftDown, downEdge, it.first())
                             else
-                                Trapezoid(pointLeftDown, downEdge, it)
+                                Trapezoid(pointLeftDown, downEdge, it, leftDrain, downEdge)
                         },
                         points.subList(downEdgeIndex + 1, points.size).let {
                             if (it.size == 1)
                                 Triangle(downEdge, pointRightDown, it.first())
                             else
-                                Trapezoid(downEdge, pointRightDown, it)
+                                Trapezoid(downEdge, pointRightDown, it, downEdge, rightDrain)
                         }
                     )
-                    val width = pointRightDown.x - pointLeftDown.x
+                    val firstRatio = (downEdge.x - leftDrain.x) / (rightDrain.x - leftDrain.x)
                     rainRatio = listOf(
-                        (downEdge.x - pointLeftDown.x) / width,
-                        (pointRightDown.x - downEdge.x) / width
+                        firstRatio,
+                        1.0 - firstRatio
                     )
                 }
             }
@@ -132,7 +134,7 @@ class RainField(
                 if (childArea[0].area == .0 && childArea[1].area != .0) {
                     childArea[0] = child[0].fillArea((maxArea * rainRatio[0]) + childArea[1].area)
                 } else if (childArea[1].area == .0 && childArea[0].area != .0) {
-                    childArea[1] = child[1].fillArea((maxArea * rainRatio[1]) + childArea[1].area)
+                    childArea[1] = child[1].fillArea((maxArea * rainRatio[1]) + childArea[0].area)
                 }
             }
 
@@ -208,7 +210,18 @@ class RainField(
                     l = medium
                 }
             }
-
+//            val mediumPointRightUp = pointDown.getPointOnY(pointRightUp, pointDown.y + l)
+//            val mediumPointLeftUp = pointDown.getPointOnY(pointLeftUp, pointDown.y + l)
+//            println(this)
+//            println(mediumPointRightUp)
+//            println(mediumPointLeftUp)
+//            println(l)
+//            println(abs(
+//                (mediumPointRightUp.x - mediumPointLeftUp.x) * (pointDown.y - mediumPointLeftUp.y) -
+//                        (pointDown.x - mediumPointLeftUp.x) * (mediumPointRightUp.y - mediumPointLeftUp.y)
+//            ) / 2.0)
+//            println(area)
+//            println()
             return l
         }
 
@@ -219,6 +232,10 @@ class RainField(
             } else {
                 AreaResult(.0, getHeightFilledByArea(maxArea))
             }
+        }
+
+        override fun toString(): String {
+            return "Triangle(pointLeftUp=$pointLeftUp, pointRightUp=$pointRightUp, pointDown=$pointDown)"
         }
     }
 }
