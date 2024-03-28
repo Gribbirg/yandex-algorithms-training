@@ -56,7 +56,7 @@ class RainField(
         abstract fun getArea(): Double
         abstract fun getHeight(): Double
         abstract fun getHeightFilledByArea(area: Double): Double
-        abstract fun fillArea(maxArea: Double): AreaResult
+        abstract fun fillArea(maxArea: Double, addAreas: List<Double> = listOf(.0, .0)): AreaResult
     }
 
     class Trapezoid(
@@ -131,34 +131,68 @@ class RainField(
             (pointRightDown.x - pointLeftDown.x + pointRightUp.x - pointLeftUp.x) * getHeight() / 2.0
 
 
-        override fun fillArea(maxArea: Double): AreaResult {
+        override fun fillArea(maxArea: Double, addAreas: List<Double>): AreaResult {
             val childArea = mutableListOf<AreaResult>()
 
             if (child.size == 1) {
                 childArea.add(
                     if (child.first().filledArea != null)
-                        AreaResult(maxArea - child.first().filledArea!!, child.first().filledHeight!!, true)
+                        AreaResult(
+                            maxArea - child.first().filledArea!! + addAreas.sum(), child.first().filledHeight!!,
+                            true
+                        )
                     else
-                        child.first().fillArea(maxArea)
+                        child.first().fillArea(maxArea, addAreas)
                 )
             } else {
 
                 childArea.addAll(
                     when (child.count { it.filledArea != null }) {
-                        0 -> child.mapIndexed { index, childItem ->
-                            childItem.fillArea(maxArea * rainRatio[index])
+                        0 -> {
+                            val list = child.mapIndexed { index, childItem ->
+                                childItem.fillArea(
+                                    maxArea * rainRatio[index],
+                                    if (index == 0) {
+                                        listOf(addAreas[0], .0)
+                                    } else {
+                                        listOf(.0, addAreas[1])
+                                    }
+                                )
+                            }.toMutableList()
+
+                            if (list[0].area == .0 && list[1].area > .0) {
+                                list[0] = child[0].fillArea(
+                                    maxArea * rainRatio[0],
+                                    listOf(addAreas[0], list[1].area)
+                                )
+                                list[1].area = .0
+                            } else if (list[1].area == .0 && list[0].area > .0) {
+                                list[1] = child[1].fillArea(
+                                    maxArea * rainRatio[1],
+                                    listOf(list[0].area, addAreas[1])
+                                )
+                                list[0].area = .0
+                            }
+
+                            list
                         }
 
                         1 -> {
                             val filledIndex = if (child[0].filledArea != null) 0 else 1
                             val notFilledIndex = if (filledIndex == 0) 1 else 0
                             val filled = AreaResult(.0, child[filledIndex].getHeight(), true)
-                            logPut.appendLine("Reload:")
-                            logPut.appendLine("From: $this")
-                            logPut.appendLine("To: ${child[notFilledIndex]}")
-                            logPut.appendLine("")
                             val notFilled = child[notFilledIndex].fillArea(
-                                maxArea - child[filledIndex].filledArea!!
+                                maxArea * rainRatio[notFilledIndex],
+                                if (notFilledIndex == 0)
+                                    listOf(
+                                        addAreas[0],
+                                        addAreas[1] + maxArea * rainRatio[filledIndex] - child[filledIndex].filledArea!!
+                                    )
+                                else
+                                    listOf(
+                                        addAreas[0] + maxArea * rainRatio[filledIndex] - child[filledIndex].filledArea!!,
+                                        addAreas[1]
+                                    )
                             )
 
                             if (filledIndex == 0)
@@ -168,27 +202,14 @@ class RainField(
                         }
 
                         else -> child.mapIndexed { index, childItem ->
-                            AreaResult(maxArea * rainRatio[index] - childItem.filledArea!!, childItem.filledHeight!!, true)
-                        }
+                            AreaResult(
+                                maxArea * rainRatio[index] - childItem.filledArea!! + addAreas[index],
+                                childItem.filledHeight!!,
+                                true
+                            )
+                        }.toMutableList()
                     }
                 )
-
-
-                if (childArea[0].area == .0 && childArea[1].area > .0) {
-                        logPut.appendLine("Reload:")
-                        logPut.appendLine("From: $this")
-                        logPut.appendLine("To: ${childArea[0]}")
-                        logPut.appendLine("")
-                    childArea[0] = child[0].fillArea(maxArea - child[1].filledArea!!)
-                    childArea[1].area = .0
-                } else if (childArea[1].area == .0 && childArea[0].area > .0) {
-                        logPut.appendLine("Reload:")
-                        logPut.appendLine("From: $this")
-                        logPut.appendLine("To: ${childArea[1]}")
-                        logPut.appendLine("")
-                    childArea[1] = child[1].fillArea(maxArea - child[0].filledArea!!)
-                    childArea[0].area = .0
-                }
             }
 
             val childHeight = childArea.maxOf { it.height }
@@ -197,15 +218,6 @@ class RainField(
                 { it.area == .0 }
             ) {
                 val res = AreaResult(.0, childHeight, false)
-                logPut.appendLine("Add:")
-                logPut.appendLine("From: $this")
-                logPut.appendLine("Result: $res")
-                logPut.appendLine("Child results:")
-                logPut.appendLine(childArea[0].toString())
-                if (childArea.size == 2)
-                    logPut.appendLine(childArea[1].toString())
-                logPut.appendLine("Max area: $maxArea")
-                logPut.appendLine("")
                 return res
             }
 
@@ -214,20 +226,12 @@ class RainField(
 
             val freeArea = childAreaSum - area
             val res = if (freeArea >= .0) {
-                filledArea = maxArea - freeArea
+                filledArea = maxArea - freeArea + addAreas.sum()
                 filledHeight = childHeight + getHeight()
                 AreaResult(freeArea, childHeight + getHeight(), true)
             } else {
                 AreaResult(.0, childHeight + getHeightFilledByArea(childAreaSum), false)
             }
-            logPut.appendLine("Add:")
-            logPut.appendLine("From: $this")
-            logPut.appendLine("Result: $res")
-            logPut.appendLine("Child results:")
-            if (childArea.size == 2)
-                logPut.appendLine(childArea[1].toString())
-            logPut.appendLine("Max area: $maxArea")
-            logPut.appendLine("")
             return res
         }
 
@@ -294,23 +298,16 @@ class RainField(
             return l
         }
 
-        override fun fillArea(maxArea: Double): AreaResult {
+        override fun fillArea(maxArea: Double, addAreas: List<Double>): AreaResult {
+            val areaMax = maxArea + addAreas.sum()
             val area = getArea()
-            val res = if (area <= maxArea) {
+            val res = if (area <= areaMax) {
                 filledArea = area
                 filledHeight = getHeight()
-                AreaResult(maxArea - area, getHeight(), true)
+                AreaResult(areaMax - area, getHeight(), true)
             } else {
-                AreaResult(.0, getHeightFilledByArea(maxArea), false)
+                AreaResult(.0, getHeightFilledByArea(areaMax), false)
             }
-            logPut.appendLine("Triangle:")
-            logPut.appendLine("From: $this")
-            logPut.appendLine("Result: $res")
-            logPut.appendLine("Points:")
-            logPut.appendLine(pointDown.getPointOnY(pointRightUp, pointDown.y + res.height).toString())
-            logPut.appendLine(pointDown.getPointOnY(pointLeftUp, pointDown.y + res.height).toString())
-            logPut.appendLine("Area: ${if (filledArea != null) filledArea else maxArea}")
-            logPut.appendLine("")
             return res
         }
 
@@ -319,8 +316,6 @@ class RainField(
         }
     }
 }
-
-val logPut = File("log.txt").bufferedWriter().also { it.write("") }
 
 fun main() {
     val input = File("input.txt").bufferedReader()
