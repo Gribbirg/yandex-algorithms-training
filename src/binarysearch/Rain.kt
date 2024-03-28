@@ -153,9 +153,12 @@ class RainField(
                             val filledIndex = if (child[0].filledArea != null) 0 else 1
                             val notFilledIndex = if (filledIndex == 0) 1 else 0
                             val filled = AreaResult(.0, child[filledIndex].getHeight(), true)
+                            logPut.appendLine("Reload:")
+                            logPut.appendLine("From: $this")
+                            logPut.appendLine("To: ${child[notFilledIndex]}")
+                            logPut.appendLine("")
                             val notFilled = child[notFilledIndex].fillArea(
-                                maxArea * rainRatio[notFilledIndex] +
-                                        (maxArea * rainRatio[filledIndex] - child[filledIndex].filledArea!!)
+                                maxArea - child[filledIndex].filledArea!!
                             )
 
                             if (filledIndex == 0)
@@ -171,25 +174,19 @@ class RainField(
                 )
 
 
-                if ((childArea[0].area == .0 && !childArea[0].full || childArea[0].area < 0) && childArea[1].area > .0) {
+                if (childArea[0].area == .0 && childArea[1].area > .0) {
                         logPut.appendLine("Reload:")
                         logPut.appendLine("From: $this")
                         logPut.appendLine("To: ${childArea[0]}")
                         logPut.appendLine("")
-                    childArea[0] = if (child[0].filledArea == null)
-                        child[0].fillArea((maxArea * rainRatio[0]) + childArea[1].area)
-                    else
-                        AreaResult(maxArea * rainRatio[0] - child[0].filledArea!! + childArea[1].area, child[0].filledHeight!!, true)
+                    childArea[0] = child[0].fillArea(maxArea - child[1].filledArea!!)
                     childArea[1].area = .0
-                } else if ((childArea[1].area == .0 && !childArea[1].full || childArea[1].area < 0) && childArea[0].area > .0) {
+                } else if (childArea[1].area == .0 && childArea[0].area > .0) {
                         logPut.appendLine("Reload:")
                         logPut.appendLine("From: $this")
                         logPut.appendLine("To: ${childArea[1]}")
                         logPut.appendLine("")
-                    childArea[1] = if (child[1].filledArea == null)
-                        child[1].fillArea((maxArea * rainRatio[1]) + childArea[0].area)
-                    else
-                        AreaResult(maxArea * rainRatio[1] - child[1].filledArea!! + childArea[0].area, child[1].filledHeight!!, true)
+                    childArea[1] = child[1].fillArea(maxArea - child[0].filledArea!!)
                     childArea[0].area = .0
                 }
             }
@@ -207,6 +204,7 @@ class RainField(
                 logPut.appendLine(childArea[0].toString())
                 if (childArea.size == 2)
                     logPut.appendLine(childArea[1].toString())
+                logPut.appendLine("Max area: $maxArea")
                 logPut.appendLine("")
                 return res
             }
@@ -228,6 +226,7 @@ class RainField(
             logPut.appendLine("Child results:")
             if (childArea.size == 2)
                 logPut.appendLine(childArea[1].toString())
+            logPut.appendLine("Max area: $maxArea")
             logPut.appendLine("")
             return res
         }
@@ -297,13 +296,22 @@ class RainField(
 
         override fun fillArea(maxArea: Double): AreaResult {
             val area = getArea()
-            return if (area <= maxArea) {
+            val res = if (area <= maxArea) {
                 filledArea = area
                 filledHeight = getHeight()
                 AreaResult(maxArea - area, getHeight(), true)
             } else {
                 AreaResult(.0, getHeightFilledByArea(maxArea), false)
             }
+            logPut.appendLine("Triangle:")
+            logPut.appendLine("From: $this")
+            logPut.appendLine("Result: $res")
+            logPut.appendLine("Points:")
+            logPut.appendLine(pointDown.getPointOnY(pointRightUp, pointDown.y + res.height).toString())
+            logPut.appendLine(pointDown.getPointOnY(pointLeftUp, pointDown.y + res.height).toString())
+            logPut.appendLine("Area: ${if (filledArea != null) filledArea else maxArea}")
+            logPut.appendLine("")
+            return res
         }
 
         override fun toString(): String {
