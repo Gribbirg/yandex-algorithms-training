@@ -1,14 +1,12 @@
-package complexity.formattingdocument
+package complexity
 
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 
 fun main() {
-    val fileInput = File("./src/complexity/formattingdocument/input.txt")
-//    val fileInput = File("input.txt")
-    val fileOutput = File("./src/complexity/formattingdocument/output.txt")
-//    val fileOutput = File("output.txt")
+    val fileInput = File("input.txt")
+    val fileOutput = File("output.txt")
     val input = fileInput.readLines()
     fileOutput.writeText("")
     val (pageWidth, lineHeight, charWidth) = input.first().split(' ').map { it.toInt() }
