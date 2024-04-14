@@ -19,7 +19,7 @@
 7. [G. Разрушить казарму](src/complexity/DestroyBarracks.kt)
 8. [H. Забег по стадиону](src/complexity/RaceAroundStadium.kt)
 9. [I. Расписание](src/complexity/Schedule.kt)
-10. [J. Форматирование документа](src/complexity/FileFormatting.kt)
+10. [J. Форматирование документа](src/complexity/CharArrayVersion.kt)
 
 ### Занятие 2 (Линейный поиск)
 
