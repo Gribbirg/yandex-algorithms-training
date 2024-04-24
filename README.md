@@ -88,3 +88,7 @@ Topics:
 2. [Linear search](src/linearsearch)
 3. [Sets and dictionaries](src/setsandmaps)
 4. [Binary Search](src/binarysearch)
+
+## Certificate
+
+![Certificate5.jpg](assets/Certificate5.jpg)
